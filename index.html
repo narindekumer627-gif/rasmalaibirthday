@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b080f">
+  <title>Birthday Memory Sphere</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+            cursive: ['Dancing Script', 'cursive'],
+            serif: ['Playfair Display', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Mobile Layout Lock */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(253, 164, 186, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(244, 114, 182, 0.4);
+      border-radius: 2px;
+    }
+
+    /* Soft Glow Glassmorphism */
+    .glass-panel {
+      background: rgba(20, 15, 25, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(244, 114, 182, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(244, 114, 182, 0.05);
+    }
+    .glass-card {
+      background: rgba(255, 240, 245, 0.03);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(244, 114, 182, 0.08);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    /* 3D Cake CSS - Strawberry Cream Aesthetic */
+    .cake-container {
+      perspective: 1000px;
+    }
+    .cake {
+      position: relative;
+      width: 150px;
+      height: 110px;
+      transform-style: preserve-3d;
+      transform: rotateX(15deg) rotateY(-10deg);
+      transition: transform 0.5s ease;
+    }
+    .cake-tier {
+      position: absolute;
+      width: 100%;
+      background: linear-gradient(to right, #f472b6, #fbcfe8, #f472b6);
+      border-radius: 50% / 20%;
+      transform-style: preserve-3d;
+      box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.2);
+    }
+    .tier-bottom {
+      height: 45px;
+      bottom: 0;
+      width: 150px;
+    }
+    .tier-top {
+      height: 35px;
+      bottom: 35px;
+      left: 15px;
+      width: 120px;
+      background: linear-gradient(to right, #f43f5e, #fda4af, #f43f5e);
+    }
+    .candle {
+      position: absolute;
+      width: 8px;
+      height: 35px;
+      background: linear-gradient(to right, #fbbf24, #fef08a);
+      bottom: 65px;
+      left: 71px;
+      border-radius: 3px;
+    }
+    .flame {
+      position: absolute;
+      width: 10px;
+      height: 16px;
+      background: radial-gradient(circle, #ffedd5 10%, #f97316 40%, #ef4444 80%);
+      border-radius: 50% 50% 20% 20% / 60% 60% 40% 40%;
+      top: -14px;
+      left: -1px;
+      animation: flicker 0.15s ease-in-out infinite alternate;
+      transform-origin: center bottom;
+    }
+    @keyframes flicker {
+      0% { transform: scale(1) rotate(-2deg); }
+      100% { transform: scale(1.1) rotate(2deg); filter: drop-shadow(0 0 3px #f97316); }
+    }
+
+    /* Reels Transition Bar */
+    .story-progress-bar {
+      height: 2px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      flex: 1 1 0%;
+      overflow: hidden;
+    }
+    .story-progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #f472b6, #fda4af);
+      width: 0%;
+      transition: width 0.3s linear;
+    }
+    .story-progress-fill.completed {
+      width: 100%;
+    }
+
+    /* Polaroid Image Effect */
+    .polaroid-frame {
+      background: #fff;
+      padding: 6px 6px 16px 6px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transform: rotate(var(--rotation, 0deg));
+    }
+
+    /* Reels Video Player Custom Progress Bar */
+    .reels-video-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+      width: 100%;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .reels-video-fill {
+      height: 100%;
+      background: #f472b6;
+      width: 0%;
+    }
+  </style>
+</head>
+<body class="bg-[#0b080f] text-slate-100 overflow-hidden font-sans select-none" onclick="enableAudioOnFirstClick()">
+
+  <!-- Background Particle System (Canvas) -->
+  <canvas id="particleCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- ================= INSTAGRAM STORY CONTAINER ================= -->
+  <div id="appContainer" class="h-screen w-screen flex flex-col relative z-10 overflow-hidden">
+    
+    <!-- Reel Top Indicator Bar -->
+    <div id="storyHeader" class="px-4 pt-3 pb-2 z-30 shrink-0 space-y-3">
+      <div class="flex gap-1.5" id="progressSegmentsContainer">
+        <!-- Progress bar markers populated dynamically -->
+      </div>
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-400 text-xs">✨</div>
+          <div>
+            <h1 class="text-[10px] font-bold tracking-wider uppercase text-white font-sans">For Someone Special</h1>
+            <p class="text-[8px] text-pink-300 font-serif">Original System Epoch: 11.07.2007</p>
+          </div>
+        </div>
+        <button onclick="toggleMobileNavMenu()" class="text-pink-300 hover:text-white p-1 text-sm bg-slate-900/40 rounded-full border border-pink-500/10">
+          <i class="fa-solid fa-ellipsis-vertical px-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Segment Selection Drawer -->
+    <div id="mobileNavModal" class="fixed inset-0 bg-[#0d0912]/98 z-50 translate-x-full transition-transform duration-300 flex flex-col justify-between p-6">
+      <div class="space-y-6">
+        <div class="flex justify-between items-center border-b border-pink-500/20 pb-4">
+          <span class="font-bold text-lg text-pink-400 font-cursive">Navigation Orbit</span>
+          <button onclick="toggleMobileNavMenu()" class="text-slate-400 hover:text-white text-xl p-1">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-3" id="mobileNavLinks"></div>
+      </div>
+      <div class="text-center text-xs text-slate-500 pb-4">
+        Jump to any segment directory.
+      </div>
+    </div>
+
+    <!-- MAIN REEL VIEWPORT -->
+    <main class="flex-1 overflow-y-auto px-4 pb-28 pt-2 relative z-10 flex flex-col justify-center" id="sectionViewport">
+      
+      <!-- SLIDE 1: HOME WELCOME -->
+      <section id="sec-home" class="tab-content w-full max-w-sm mx-auto space-y-6 py-2">
+        <div class="glass-panel rounded-3xl p-6 text-center relative overflow-hidden space-y-5">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(244,114,182,0.12),transparent_50%)]"></div>
+          <div class="relative z-10 space-y-4">
+            <div class="relative w-24 h-24 mx-auto rounded-full p-0.5 bg-gradient-to-tr from-pink-400 to-rose-400">
+              <div class="w-full h-full bg-[#0d0912] rounded-full flex items-center justify-center overflow-hidden">
+                <svg class="w-1/2 h-1/2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                </svg>
+              </div>
+            </div>
+            <h2 class="text-2xl font-serif font-semibold text-pink-100 tracking-wide">Happy Birthday, Beautiful!</h2>
+            <p class="text-pink-300 font-cursive text-xl">Celebrating July 11, 2007</p>
+            <p class="text-slate-300 text-[11px] leading-relaxed max-w-xs mx-auto">
+              This space has been calibrated with memories, interactive events, and synchronized soundtracks. Tap below to navigate your custom celebration matrix.
+            </p>
+          </div>
+          <button onclick="navigateTabOrder(1)" class="relative z-10 w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white text-xs font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-pink-500/10">
+            Open Story Book
+          </button>
+        </div>
+      </section>
+
+      <!-- SLIDE 2: COUNTDOWN PAGE -->
+      <section id="sec-countdown" class="tab-content w-full max-w-sm mx-auto space-y-6 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Chrono Parameters</h2>
+          <p class="text-pink-300 text-[10px]">Time metrics relative to July 11th</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass-panel p-4 rounded-2xl text-center relative overflow-hidden flex flex-col justify-center h-22">
+            <span id="count-days" class="text-xl font-bold text-pink-400">00</span>
+            <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">Days</span>
+          </div>
+          <div class="glass-panel p-4 rounded-2xl text-center relative overflow-hidden flex flex-col justify-center h-22">
+            <span id="count-hours" class="text-xl font-bold text-rose-400">00</span>
+            <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">Hours</span>
+          </div>
+          <div class="glass-panel p-4 rounded-2xl text-center relative overflow-hidden flex flex-col justify-center h-22">
+            <span id="count-mins" class="text-xl font-bold text-pink-300">00</span>
+            <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">Minutes</span>
+          </div>
+          <div class="glass-panel p-4 rounded-2xl text-center relative overflow-hidden flex flex-col justify-center h-22">
+            <span id="count-secs" class="text-xl font-bold text-rose-300">00</span>
+            <span class="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">Seconds</span>
+          </div>
+        </div>
+
+        <div class="glass-card p-4 rounded-2xl text-center space-y-3">
+          <h3 class="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Target Solar Cycle</h3>
+          <p id="nextMilestoneAge" class="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-rose-400">-- Years Old</p>
+          <div class="relative w-20 h-24 mx-auto flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90">
+              <circle cx="40" cy="48" r="34" stroke="currentColor" stroke-width="4.5" class="text-slate-900" fill="transparent" />
+              <circle id="countdownCircle" cx="40" cy="48" r="34" stroke="currentColor" stroke-width="4.5" class="text-pink-400" fill="transparent"
+                      stroke-dasharray="213" stroke-dashoffset="213" stroke-linecap="round" />
+            </svg>
+            <span id="yearPercentVal" class="absolute text-[10px] font-bold">0%</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 3: REEL-STYLE PHOTO FRAME -->
+      <section id="sec-gallery" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Chronicle Grid</h2>
+          <p class="text-pink-300 text-[10px]">Nostalgic snapshots from local directory</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3" id="galleryGrid"></div>
+      </section>
+
+      <!-- SLIDE 4: INSTAGRAM REEL-STYLE VIDEO PLAYBACK -->
+      <section id="sec-videos" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Reel Memory</h2>
+          <p class="text-pink-300 text-[10px]">Archived tracking in <code class="text-pink-400">video.mp4</code></p>
+        </div>
+
+        <div class="glass-panel p-2 rounded-3xl relative overflow-hidden flex flex-col justify-end aspect-[9/16] max-h-[460px] mx-auto w-full group">
+          <!-- Main Video Frame -->
+          <div class="absolute inset-0 z-0 bg-black cursor-pointer" onclick="toggleReelPlayState()">
+            <video id="videoPlayer" class="w-full h-full object-cover" src="video.mp4" loop playsinline></video>
+            <!-- Dimming gradient overlay like Instagram Reels -->
+            <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none"></div>
+          </div>
+
+          <!-- Video Play State Indicator Icon -->
+          <div id="videoPlayOverlayIcon" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-300 z-10">
+            <div class="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm">
+              <i id="overlayIconValue" class="fa-solid fa-play text-white text-2xl ml-1"></i>
+            </div>
+          </div>
+
+          <!-- Left Info Overlay (Bottom Left) -->
+          <div class="relative z-10 p-4 space-y-2 pointer-events-none w-[80%]">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-pink-500/20 border border-pink-400 flex items-center justify-center font-bold text-[10px] text-pink-300">❤️</div>
+              <span class="text-xs font-semibold text-white truncate" id="videoActiveTitle">Memory Frame</span>
+            </div>
+            <p id="videoActiveDesc" class="text-[10px] text-slate-300 leading-snug line-clamp-2">Nostalgic local sequence archive asset.</p>
+          </div>
+
+          <!-- Right Control Panel (Bottom Right Floating) -->
+          <div class="absolute right-3 bottom-14 flex flex-col items-center gap-4 z-10">
+            <button onclick="triggerVideoLike()" class="flex flex-col items-center group/btn">
+              <div class="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center backdrop-blur-md active:scale-95 transition-transform">
+                <i id="videoHeartIcon" class="fa-solid fa-heart text-pink-400 text-sm group-hover/btn:scale-110 transition-transform"></i>
+              </div>
+              <span id="videoLikeCount" class="text-[9px] text-slate-300 mt-1 font-semibold">0</span>
+            </button>
+            <button onclick="toggleVideoMute()" class="flex flex-col items-center group/btn">
+              <div class="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center backdrop-blur-md active:scale-95 transition-transform">
+                <i id="videoMuteIcon" class="fa-solid fa-volume-high text-white text-sm"></i>
+              </div>
+              <span class="text-[8px] text-slate-300 mt-1 font-semibold">Audio</span>
+            </button>
+          </div>
+
+          <!-- Bottom Seekbar Track -->
+          <div class="relative z-10 px-4 pb-4 w-full">
+            <div class="reels-video-bar" onclick="seekReelVideo(event)" style="width: 100%; height: 3px; background-color: rgba(255, 255, 255, 0.2); border-radius: 9999px; cursor: pointer; position: relative;">
+              <div id="reelsVideoFill" class="reels-video-fill" style="height: 100%; width: 0%; background-color: #f472b6; border-radius: 9999px; transition: width 0.1s linear;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: AFFECTION CARD DECK -->
+      <section id="sec-reasons" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Affection Deck</h2>
+          <p class="text-pink-300 text-[10px]">Reasons your existence updates my environment</p>
+        </div>
+
+        <div class="relative h-60 flex justify-center items-center" id="reasonStack"></div>
+
+        <div class="flex justify-center gap-3 items-center">
+          <button onclick="navigateReason(-1)" class="w-10 h-10 rounded-full border border-pink-500/15 flex items-center justify-center text-pink-300">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <span class="text-[10px] font-semibold bg-slate-900/60 px-4 py-1.5 rounded-full border border-pink-500/20 text-pink-100" id="reasonCounter">1 / 15</span>
+          <button onclick="navigateReason(1)" class="w-10 h-10 rounded-full border border-pink-500/15 flex items-center justify-center text-pink-300">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: TRANSMISSION LOG (LETTER) -->
+      <section id="sec-letter" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Keystroke Log</h2>
+          <p class="text-pink-300 text-[10px]">Encrypted message log output</p>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-5 space-y-4 min-h-[220px] flex flex-col justify-between">
+          <div class="font-serif text-xs leading-relaxed text-pink-100 whitespace-pre-wrap font-medium" id="letterContent"></div>
+          <div class="flex justify-between items-center pt-3 border-t border-pink-500/20">
+            <button onclick="skipTypingAnimation()" class="px-3 py-1.5 rounded-lg bg-pink-950/20 text-[9px] text-pink-200 border border-pink-500/10">
+              Skip typing
+            </button>
+            <button onclick="replayLetterAnimation()" class="text-[9px] text-pink-400 hover:text-pink-300 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left"></i> Replay
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: INTERACTIVE CAKE -->
+      <section id="sec-cake" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Discharge Event</h2>
+          <p class="text-pink-300 text-[10px]">Blow toward micro-receiver to extinguish candle</p>
+        </div>
+
+        <div class="glass-panel rounded-3xl p-5 text-center space-y-5 flex flex-col items-center">
+          <div class="cake-container w-40 h-40 flex justify-center items-center">
+            <div class="cake" id="interactiveCake">
+              <div class="cake-tier tier-top animate-pulse"></div>
+              <div class="cake-tier tier-bottom"></div>
+              <div class="candle" id="mainCandle" onclick="extinguishCandle()">
+                <div class="flame" id="mainFlame"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 w-full">
+            <div id="micStatusContainer" class="flex items-center justify-center gap-2 text-[9px] text-slate-400 bg-slate-900/60 border border-pink-500/10 py-2 px-3 rounded-xl">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" id="micIndicator"></span>
+              <span id="micText">Tap mic trigger to analyze ambient blow</span>
+            </div>
+
+            <div class="flex gap-2">
+              <button id="micBtn" onclick="initMicrophoneBlow()" class="flex-1 bg-pink-800 hover:bg-pink-900 text-white font-semibold py-2 rounded-xl text-xs">
+                <i class="fa-solid fa-microphone mr-1"></i> Mic Blow
+              </button>
+              <button onclick="extinguishCandle()" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2 rounded-xl text-xs">
+                Force Blow
+              </button>
+            </div>
+
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-pink-500/10 hidden text-center" id="cakePostBlowArea">
+              <p class="text-[9px] text-emerald-400 font-semibold mb-2">Cake Discharged! Gifts unlocked.</p>
+              <button onclick="switchTab('gifts')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-2 rounded-lg">
+                View Gifts <i class="fa-solid fa-angles-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: SURPRISE GIFTS -->
+      <section id="sec-gifts" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Surprise Manifest</h2>
+          <p class="text-pink-300 text-[10px]">Unlock parameters coordinates</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div id="gift-1" class="glass-panel p-4 rounded-2xl text-center flex flex-col justify-between items-center h-40 border border-pink-500/10">
+            <div class="text-xl text-pink-400 mt-2 animate-bounce"><i class="fa-solid fa-box-open"></i></div>
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest">Box 01</span>
+            <button onclick="decryptGift(1)" class="w-full bg-pink-950/20 text-pink-200 py-1 rounded-lg text-[9px] border border-pink-500/15">Open</button>
+          </div>
+
+          <div id="gift-2" class="glass-panel p-4 rounded-2xl text-center flex flex-col justify-between items-center h-40 border border-pink-500/10">
+            <div class="text-xl text-rose-400 mt-2 animate-bounce"><i class="fa-solid fa-gift"></i></div>
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest">Box 02</span>
+            <button onclick="decryptGift(2)" class="w-full bg-pink-950/20 text-pink-200 py-1 rounded-lg text-[9px] border border-pink-500/15">Open</button>
+          </div>
+
+          <div id="gift-3" class="glass-panel p-4 rounded-2xl text-center flex flex-col justify-between items-center h-40 border border-pink-500/10">
+            <div class="text-xl text-pink-300 mt-2 animate-bounce"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest">Box 03</span>
+            <button onclick="decryptGift(3)" class="w-full bg-pink-950/20 text-pink-200 py-1 rounded-lg text-[9px] border border-pink-500/15">Open</button>
+          </div>
+
+          <div id="gift-4" class="glass-panel p-4 rounded-2xl text-center flex flex-col justify-between items-center h-40 border border-pink-500/10">
+            <div class="text-xl text-rose-300 mt-2 animate-bounce"><i class="fa-solid fa-gem"></i></div>
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest">Box 04</span>
+            <button onclick="decryptGift(4)" class="w-full bg-pink-950/20 text-pink-200 py-1 rounded-lg text-[9px] border border-pink-500/15">Open</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: WISHES DIGITAL WALL -->
+      <section id="sec-wishes" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Wishes Sphere</h2>
+          <p class="text-pink-300 text-[10px]">Post localized celebration parameters</p>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl space-y-3">
+          <form id="wishForm" onsubmit="submitWish(event)" class="space-y-3">
+            <input type="text" id="wishName" required placeholder="Guest Sender Identity" class="w-full px-3 py-2 text-xs rounded-lg bg-[#0e0a14] border border-pink-500/10 text-white outline-none">
+            <textarea id="wishMessage" required rows="2" placeholder="Write parameters statement..." class="w-full px-3 py-2 text-xs rounded-lg bg-[#0e0a14] border border-pink-500/10 text-white outline-none resize-none"></textarea>
+            
+            <div class="flex justify-between items-center">
+              <div class="flex gap-1.5">
+                <button type="button" onclick="setFormTheme('rose')" class="w-5 h-5 rounded-full bg-pink-500 border border-white" id="color-rose"></button>
+                <button type="button" onclick="setFormTheme('indigo')" class="w-5 h-5 rounded-full bg-purple-500" id="color-indigo"></button>
+                <button type="button" onclick="setFormTheme('emerald')" class="w-5 h-5 rounded-full bg-rose-400" id="color-emerald"></button>
+              </div>
+              <button type="submit" class="bg-pink-500 px-4 py-1.5 rounded-lg text-xs font-semibold text-white">Post Wish</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex justify-between items-center border-b border-pink-500/10 pb-1.5">
+            <span class="text-xs font-bold text-pink-100 font-cursive">Wishes Wall</span>
+            <span class="text-[9px] text-pink-300/80" id="wishCount">0 items</span>
+          </div>
+          <div class="grid grid-cols-1 gap-2 max-h-36 overflow-y-auto pr-1" id="wishesGrid"></div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: STORY BOOK -->
+      <section id="sec-story" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Chapter Book</h2>
+          <p class="text-pink-300 text-[10px]">Archived timeline nodes logs</p>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-5 space-y-4 min-h-[180px] flex flex-col justify-between">
+          <div class="space-y-2 text-center" id="storyBookPageContent"></div>
+          <div class="flex justify-between items-center border-t border-pink-500/20 pt-3">
+            <button onclick="navigateStoryPage(-1)" class="text-[9px] bg-[#0d0912] px-3 py-1.5 rounded-lg border border-pink-500/10">Back</button>
+            <span id="storyPageCount" class="text-[9px] text-pink-300 font-bold">Chapter 1 / 5</span>
+            <button onclick="navigateStoryPage(1)" class="text-[9px] bg-[#0d0912] px-3 py-1.5 rounded-lg border border-pink-500/10">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: HISTORICAL TIMELINE -->
+      <section id="sec-timeline" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">History Grid</h2>
+          <p class="text-pink-300 text-[10px]">Chronicle records timeline telemetry</p>
+        </div>
+        <div class="relative pl-6 border-l-2 border-pink-500/20 space-y-4 max-h-[300px] overflow-y-auto" id="timelineList"></div>
+      </section>
+
+      <!-- SLIDE 12: SYSTEM SETTINGS -->
+      <section id="sec-settings" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="text-center space-y-1">
+          <h2 class="text-lg font-bold text-pink-100 font-serif">Control Panel</h2>
+          <p class="text-pink-300 text-[10px]">Configure environmental parameters</p>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-5 space-y-4">
+          <div class="flex justify-between items-center gap-4">
+            <div>
+              <h4 class="text-xs font-semibold">Visual Pattern</h4>
+              <p class="text-[9px] text-slate-500">Configure backdrop particles.</p>
+            </div>
+            <select onchange="setParticleMode(this.value)" class="bg-[#0e0a14] border border-pink-500/15 p-1.5 rounded-lg text-xs outline-none">
+              <option value="hearts" selected>Hearts</option>
+              <option value="balloons">Balloons</option>
+              <option value="snow">Snow</option>
+              <option value="stars">Stars</option>
+              <option value="fireworks">Fire</option>
+            </select>
+          </div>
+
+          <div class="border-t border-pink-500/10 pt-3">
+            <h4 class="text-xs font-semibold mb-2">Theme Profile</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="setGlobalTheme('rose')" class="p-3 rounded-lg text-[10px] glass-card border border-pink-500/20 flex justify-between items-center">
+                <span>Rose Gold</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span>
+              </button>
+              <button onclick="setGlobalTheme('indigo')" class="p-3 rounded-lg text-[10px] glass-card border border-pink-500/10 flex justify-between items-center">
+                <span>Orchid</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-pink-500/10 pt-3 text-center">
+            <button onclick="hardResetApp()" class="text-[10px] text-pink-400 font-semibold">Purge Cache Records</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 13: GRAND FINALE -->
+      <section id="sec-finale" class="tab-content w-full max-w-sm mx-auto space-y-4 py-2 hidden">
+        <div class="glass-panel rounded-2xl p-6 text-center space-y-5 relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-tr from-pink-500/10 to-rose-500/10"></div>
+          <div class="relative z-10 space-y-2">
+            <span class="text-4xl animate-bounce block">🎆</span>
+            <h2 class="text-2xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-rose-400">Grand Synthesis</h2>
+            <p class="text-pink-300 font-cursive text-sm">Celestial Celebration Active</p>
+            <p class="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">
+              Automated skyfire canvas, gravity responsive balloon metrics, and active celebration overlays configured.
+            </p>
+          </div>
+          <button onclick="triggerGrandFinaleEffects()" class="relative z-10 w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white font-bold py-3.5 rounded-xl text-xs shadow-lg shadow-rose-500/30">
+            Activate Skyfire Fireworks
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FLOATING PROGRESSION CONTROL FOOTER -->
+    <div class="fixed bottom-14 left-0 right-0 px-4 py-2 z-30 pointer-events-none shrink-0">
+      <div class="flex justify-between w-full pointer-events-auto bg-[#0d0912]/90 backdrop-blur-md border border-pink-500/10 rounded-full p-1.5 shadow-xl max-w-md mx-auto">
+        <button onclick="navigateTabOrder(-1)" class="px-4 py-2 text-xs font-semibold text-pink-300 flex items-center gap-1">
+          <i class="fa-solid fa-chevron-left"></i> Back
+        </button>
+        <span id="mobileTabProgress" class="text-[9px] font-bold text-pink-400 self-center uppercase tracking-wider">Dashboard</span>
+        <button onclick="navigateTabOrder(1)" class="px-4 py-2 text-xs font-semibold bg-pink-500 hover:bg-pink-600 text-white rounded-full flex items-center gap-1 shadow-md shadow-pink-500/10">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- FLOATING MINI AUDIO SYSTEM -->
+    <div id="miniPlayer" class="h-14 px-4 bg-[#0d0912]/85 backdrop-blur-md border-t border-pink-500/10 flex items-center justify-between shrink-0 relative z-20">
+      <div class="flex items-center gap-2 min-w-0 max-w-[50%]">
+        <div class="w-8 h-8 rounded bg-pink-500/20 flex items-center justify-center text-pink-400 font-bold shrink-0 text-xs" id="miniCover">🎵</div>
+        <div class="min-w-0">
+          <h4 id="miniTitle" class="text-[10px] font-bold text-white truncate">Select a Track</h4>
+          <p id="miniArtist" class="text-[8px] text-pink-300/80 truncate">Symphony Engine</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="togglePlayPause()" id="miniPlayBtn" class="w-8 h-8 rounded-full bg-[#0d0912] border border-pink-500/15 text-white text-xs flex items-center justify-center">
+          <i class="fa-solid fa-play"></i>
+        </button>
+        <button onclick="playNextTrack()" class="text-pink-400 text-xs"><i class="fa-solid fa-forward-step"></i></button>
+      </div>
+
+      <div class="flex items-center gap-1.5 max-w-[100px] text-[10px] text-pink-300">
+        <i class="fa-solid fa-volume-low text-[8px]"></i>
+        <input type="range" min="0" max="100" value="70" oninput="adjustVolume(this.value)" class="w-12 h-1 bg-[#0d0912] border border-pink-500/10 rounded-lg appearance-none cursor-pointer accent-pink-500">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GALLERY LIGHTBOX MODAL OVERLAY -->
+  <div id="galleryLightbox" class="fixed inset-0 bg-[#0d0912]/95 z-50 hidden flex-col justify-between p-4">
+    <div class="flex justify-between items-center text-pink-300 border-b border-pink-500/10 pb-2">
+      <span id="lightboxIndex" class="text-[10px] font-semibold">Image 1 / 6</span>
+      <button onclick="closeLightbox()" class="text-slate-400 hover:text-white text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="flex-1 flex items-center justify-center relative select-none">
+      <img id="lightboxImg" src="" class="max-h-[60vh] max-w-full object-contain rounded-lg transition-transform duration-300" alt="Lightbox render">
+      
+      <button onclick="navigateLightbox(-1)" class="absolute left-1 p-2 bg-[#0d0912]/60 rounded-full border border-pink-500/10 text-slate-300">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button onclick="navigateLightbox(1)" class="absolute right-1 p-2 bg-[#0d0912]/60 rounded-full border border-pink-500/10 text-slate-300">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <div class="text-center space-y-3 pb-4">
+      <div class="flex justify-center gap-3">
+        <button onclick="triggerLightboxLike()" class="px-3 py-1.5 bg-pink-500 text-white text-[10px] font-semibold rounded-lg flex items-center gap-1 shadow-md">
+          <i class="fa-solid fa-heart"></i> Like
+        </button>
+        <button onclick="triggerLightboxDownload()" class="px-3 py-1.5 bg-slate-900 text-slate-300 text-[10px] font-semibold rounded-lg border border-pink-500/10 flex items-center gap-1">
+          <i class="fa-solid fa-download"></i> Save
+        </button>
+      </div>
+      <p id="lightboxCaption" class="text-[10px] text-pink-300/80 max-w-xs mx-auto truncate">Photograph description timeline record.</p>
+    </div>
+  </div>
+
+  <!-- CORE CODE ENGINE SCRIPT -->
+  <script>
+    /* ================= BIRTH DATE CHRONO CONFIGURATION ================= */
+    const DOB_CONFIG = {
+      day: 11,
+      month: 6, // 0-indexed (July is Month Index 6)
+      year: 2007
+    };
+
+    function calculateNextBirthday() {
+      const now = new Date();
+      let targetYear = now.getFullYear();
+      let target = new Date(targetYear, DOB_CONFIG.month, DOB_CONFIG.day);
+      if (target.getTime() < now.getTime()) {
+        target = new Date(targetYear + 1, DOB_CONFIG.month, DOB_CONFIG.day);
+      }
+      return target;
+    }
+
+    function calculateTargetAge() {
+      const nextBirthday = calculateNextBirthday();
+      return nextBirthday.getFullYear() - DOB_CONFIG.year;
+    }
+
+    const APP_CONFIG = {
+      birthdayDate: calculateNextBirthday(),
+      totalSections: 13
+    };
+
+    const NAVIGATION_SCHEMA = [
+      { id: "home", label: "Dashboard", icon: "fa-solid fa-house" },
+      { id: "countdown", label: "Chronology", icon: "fa-regular fa-clock" },
+      { id: "gallery", label: "Chronicle Grid", icon: "fa-regular fa-image" },
+      { id: "videos", label: "Motion Logs", icon: "fa-solid fa-circle-play" },
+      { id: "reasons", label: "Affection Matrix", icon: "fa-solid fa-heart" },
+      { id: "letter", label: "Keystroke Log", icon: "fa-solid fa-envelope-open-text" },
+      { id: "cake", label: "Discharge Event", icon: "fa-solid fa-cake-candles" },
+      { id: "gifts", label: "Gift Manifest", icon: "fa-solid fa-box" },
+      { id: "wishes", label: "Wishes Wall", icon: "fa-regular fa-comments" },
+      { id: "story", label: "Chapter Book", icon: "fa-solid fa-book-open" },
+      { id: "timeline", label: "History Grid", icon: "fa-solid fa-timeline" },
+      { id: "settings", label: "Control System", icon: "fa-solid fa-sliders" },
+      { id: "finale", label: "Grand Finale", icon: "fa-solid fa-wand-magic-sparkles" }
+    ];
+
+    /* ================= LOCAL MUSIC DIRECTORY FILES ================= */
+    const STAGE_SOUNDTRACK_MAP = {
+      "home": 0,       // plays start.mp3
+      "countdown": 0,  // plays start.mp3
+      "gallery": 1,    // plays dil.mp3
+      "videos": null,  // Audio is managed by the local video player inside Slide 4
+      "reasons": 3,    // plays start.mp3 (Cake/Ceremony area)
+      "letter": 3,     
+      "cake": 3,       
+      "gifts": 3,      
+      "wishes": 4,     // plays dil.mp3
+      "story": 4,      
+      "timeline": 4,   
+      "finale": 4      
+    };
+
+    const MUSIC_DATABASE = [
+      { id: 1, name: "Intro Phase", artist: "Start Log", url: "start.mp3", cover: "🌅" },
+      { id: 2, name: "Soft Memory", artist: "Heartbeat Track", url: "dil.mp3", cover: "🌌" },
+      { id: 3, name: "Motion Synthesis", artist: "Video Log", url: "dil.mp3", cover: "🎬" },
+      { id: 4, name: "Discharge Tune", artist: "Cake Ceremony", url: "start.mp3", cover: "🎂" },
+      { id: 5, name: "Synthesis Outro", artist: "Ending Theme", url: "dil.mp3", cover: "✨" }
+    ];
+
+    /* ================= LOCAL IMAGE DIRECTORY FILES ================= */
+    const GALLERY_DATABASE = [
+      { id: 1, url: "1.jpeg", caption: "Sweet milestone coordinates check", likes: 14, rotation: "-2deg" },
+      { id: 2, url: "2.jpeg", caption: "Nostalgic trace capture", likes: 29, rotation: "3deg" },
+      { id: 3, url: "3.jpeg", caption: "Aesthetic profile frame matrix", likes: 11, rotation: "-1deg" },
+      { id: 4, url: "4.jpeg", caption: "Nostalgia parameters aligned", likes: 22, rotation: "2deg" },
+      { id: 5, url: "5.jpeg", caption: "Calibration target snapshot", likes: 35, rotation: "-3deg" },
+      { id: 6, url: "6.jpeg", caption: "Nostalgic snapshot telemetry", likes: 48, rotation: "1deg" }
+    ];
+
+    /* ================= LOCAL VIDEO DIRECTORY FILE ================= */
+    const VIDEO_DATABASE = [
+      { id: 1, title: "Memory Motion Compilation", desc: "Archived sequence file video.mp4", url: "video.mp4", likes: 54 }
+    ];
+
+    const AFFECTION_MATRIX_REASONS = [
+      "The layout of your system logic since birth year 2007.",
+      "Your systematic approach to processing coordinates.",
+      "The warmth variables emitted during close-range proximity.",
+      "Your capacity to maintain positive emotional vectors.",
+      "Your highly organized mental directory structure.",
+      "The aesthetic qualities of your optical sensors.",
+      "Your capacity to render empathy when logic cycles exhaust.",
+      "The memory registers we have co-written in the database.",
+      "Your capability to process anomalies with structural peace.",
+      "The design integrity of your soul alignment.",
+      "Your unique processing pathways that bypass norms.",
+      "The shared security protocols only we know.",
+      "Your support variables in my calculation processes.",
+      "The peaceful ambiance your physical avatar emits.",
+      "Your continuous adaptation and optimization processes."
+    ];
+
+    const CORRESPONDENCE_TEXT = 
+      "Dear Recipient,\n\n" +
+      "This transcript serves to formally record and project deep appreciation for your existence in our spatial coordinate frame since your initialization on July 11, 2007.\n\n" +
+      "Throughout several solar cycles, your emotional throughput, adaptive support, and constant design optimization have proven invaluable.\n\n" +
+      "Signing off with continuous affection variables,\n" +
+      "Your Main Processor Node.";
+
+    const CHAPTER_BOOK = [
+      { title: "Initialization: July 11, 2007", text: "A unique system node initialized in the physical plane, configuring a high-efficiency processing core." },
+      { title: "Protocol Setup", text: "We developed customized parameters, exchanging critical data packages that established common directories of trust." },
+      { title: "High Alpine Excursion", text: "Our physical systems navigated intense physical elevations, verifying synchronization capacity." },
+      { title: "Anomaly Detection", text: "When logical protocols faltered, your manual override algorithms maintained network system integrity." },
+      { title: "Operational Excellence", text: "Continuous daily optimization processes. Our collective database scales dynamically." }
+    ];
+
+    const HISTORICAL_TIMELINE = [
+      { year: "2007", title: "System Initialization", desc: "Core database established on coordinate July 11." },
+      { year: "2021", title: "Expansion Phase", desc: "We added several terabytes of adventure records and emotional indexes." },
+      { year: "2022", title: "Calibration Phase", desc: "System recalibrated protocols to enable persistent connections." },
+      { year: "2023", title: "Operational Phase", desc: "We established consistent support pipelines, lowering network latency." },
+      { year: "2024", title: "Fortification Phase", desc: "Implementation of long-range transport frames and dynamic trust networks." },
+      { year: "2025", title: "Projections Phase", desc: "Calculating projections for next-generation shared environmental frames." }
+    ];
+
+    /* ================= STATE CONTROLLER ================= */
+    const STATE = {
+      isAudioInitialized: false,
+      activeTab: "home",
+      currentTrackIdx: 0,
+      isAudioPlaying: false,
+      audioShuffle: false,
+      audioRepeat: "none", 
+      lightboxActiveIdx: 0,
+      activeReasonIdx: 0,
+      letterCharIndex: 0,
+      letterIntervalId: null,
+      letterSpeed: 30, 
+      candleBlown: false,
+      activeStoryPageIdx: 0,
+      activeVideoIdx: 0,
+      videoLikes: 54,
+      videoIsLiked: false,
+      activeGiftStates: { 1: false, 2: false, 3: false, 4: false },
+      particles: [],
+      particleMode: "hearts", 
+      particleSpeedScale: 1.0,
+      audioContext: null,
+      micStream: null,
+      micAnalyser: null
+    };
+
+    /* ================= AUDIO COMPLIANCE TRIGGER ================= */
+    function enableAudioOnFirstClick() {
+      if (!STATE.isAudioInitialized) {
+        STATE.isAudioInitialized = true;
+        syncContextAudio(STATE.activeTab);
+      }
+    }
+
+    /* ================= NAVIGATION ENGINE ================= */
+    function buildNavigation() {
+      const mobile = document.getElementById("mobileNavLinks");
+      mobile.innerHTML = "";
+
+      const segmentsContainer = document.getElementById("progressSegmentsContainer");
+      segmentsContainer.innerHTML = "";
+
+      NAVIGATION_SCHEMA.forEach((nav, index) => {
+        const segment = document.createElement("div");
+        segment.className = "story-progress-bar";
+        segment.innerHTML = `<div id="story-progress-fill-${nav.id}" class="story-progress-fill"></div>`;
+        segmentsContainer.appendChild(segment);
+
+        const mBtn = document.createElement("button");
+        mBtn.id = `nav-m-${nav.id}`;
+        mBtn.onclick = () => {
+          switchTab(nav.id);
+          toggleMobileNavMenu();
+        };
+        mBtn.className = "flex flex-col items-center justify-center p-3 bg-[#110c18] border border-pink-500/10 rounded-xl text-center text-xs text-slate-400 hover:text-white";
+        mBtn.innerHTML = `<i class="${nav.icon} text-base mb-1.5 text-pink-400"></i> <span class="truncate w-full text-[10px]">${nav.label}</span>`;
+        mobile.appendChild(mBtn);
+      });
+
+      updateNavActiveIndicator();
+    }
+
+    function switchTab(tabId) {
+      // Pause local video if we are exiting the videos page
+      if (STATE.activeTab === "videos" && tabId !== "videos") {
+        pauseReelVideo();
+      }
+
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+      const target = document.getElementById(`sec-${tabId}`);
+      if (target) {
+        target.classList.remove("hidden");
+        STATE.activeTab = tabId;
+        updateNavActiveIndicator();
+        syncContextAudio(tabId);
+
+        updateStorySegmentIndicators(tabId);
+
+        const matchedSchema = NAVIGATION_SCHEMA.find(n => n.id === tabId);
+        if (matchedSchema) {
+          document.getElementById("mobileTabProgress").innerText = matchedSchema.label;
+        }
+
+        if (tabId === "letter") {
+          replayLetterAnimation();
+        } else if (tabId === "cake") {
+          resetCandle();
+        } else if (tabId === "story") {
+          renderStoryPage();
+        } else if (tabId === "videos") {
+          playReelVideo();
+        }
+
+        if (tabId === "finale") {
+          setParticleMode("fireworks");
+        } else if (tabId === "cake") {
+          setParticleMode("stars");
+        } else if (tabId === "home") {
+          setParticleMode("hearts");
+        }
+      }
+    }
+
+    function navigateTabOrder(dir) {
+      const currentIdx = NAVIGATION_SCHEMA.findIndex(n => n.id === STATE.activeTab);
+      let targetIdx = currentIdx + dir;
+      if (targetIdx < 0) targetIdx = 0;
+      if (targetIdx >= NAVIGATION_SCHEMA.length) targetIdx = NAVIGATION_SCHEMA.length - 1;
+      
+      switchTab(NAVIGATION_SCHEMA[targetIdx].id);
+    }
+
+    function syncContextAudio(tabId) {
+      if (!STATE.isAudioInitialized) return;
+      const associatedTrackIdx = STAGE_SOUNDTRACK_MAP[tabId];
+      if (associatedTrackIdx !== null && associatedTrackIdx !== undefined) {
+        if (STATE.currentTrackIdx !== associatedTrackIdx || !STATE.isAudioPlaying) {
+          playTrack(associatedTrackIdx);
+        }
+      } else if (associatedTrackIdx === null) {
+        // Explicitly suspend global background audio context for specific focus slides (like video)
+        if (STATE.isAudioPlaying) {
+          globalAudio.pause();
+          STATE.isAudioPlaying = false;
+          updateAudioPlayerUI();
+        }
+      }
+    }
+
+    function updateNavActiveIndicator() {}
+
+    function updateStorySegmentIndicators(activeTabId) {
+      const currentIdx = NAVIGATION_SCHEMA.findIndex(n => n.id === activeTabId);
+      NAVIGATION_SCHEMA.forEach((nav, index) => {
+        const fillElement = document.getElementById(`story-progress-fill-${nav.id}`);
+        if (!fillElement) return;
+
+        if (index < currentIdx) {
+          fillElement.style.width = "100%";
+        } else if (index === currentIdx) {
+          fillElement.style.width = "100%";
+        } else {
+          fillElement.style.width = "0%";
+        }
+      });
+    }
+
+    function toggleMobileNavMenu() {
+      const modal = document.getElementById("mobileNavModal");
+      if (modal.classList.contains("translate-x-full")) {
+        modal.classList.remove("translate-x-full");
+      } else {
+        modal.classList.add("translate-x-full");
+      }
+    }
+
+    /* ================= REELS SYSTEM VIDEO HANDLERS ================= */
+    let videoTimelineTracker = null;
+
+    function playReelVideo() {
+      const video = document.getElementById("videoPlayer");
+      if (!video) return;
+
+      // Stop any background loop to avoid audio clashing
+      if (globalAudio && !globalAudio.paused) {
+        globalAudio.pause();
+        STATE.isAudioPlaying = false;
+        updateAudioPlayerUI();
+      }
+
+      video.currentTime = 0;
+      video.play().then(() => {
+        updateReelIconOverlay("pause");
+      }).catch(err => {
+        console.warn("Video autostart blocked. Awaiting user tap configuration.");
+      });
+
+      // Track playback progress
+      if (videoTimelineTracker) clearInterval(videoTimelineTracker);
+      videoTimelineTracker = setInterval(updateReelVideoProgress, 100);
+    }
+
+    function pauseReelVideo() {
+      const video = document.getElementById("videoPlayer");
+      if (video) {
+        video.pause();
+        updateReelIconOverlay("play");
+      }
+      if (videoTimelineTracker) clearInterval(videoTimelineTracker);
+    }
+
+    function toggleReelPlayState() {
+      const video = document.getElementById("videoPlayer");
+      if (!video) return;
+
+      if (video.paused) {
+        video.play();
+        updateReelIconOverlay("play-temp");
+      } else {
+        video.pause();
+        updateReelIconOverlay("pause-temp");
+      }
+    }
+
+    function updateReelIconOverlay(state) {
+      const iconContainer = document.getElementById("videoPlayOverlayIcon");
+      const icon = document.getElementById("overlayIconValue");
+      if (!iconContainer || !icon) return;
+
+      if (state === "play-temp") {
+        icon.className = "fa-solid fa-play text-white text-2xl ml-1";
+        iconContainer.style.opacity = "1";
+        setTimeout(() => { iconContainer.style.opacity = "0"; }, 600);
+      } else if (state === "pause-temp") {
+        icon.className = "fa-solid fa-pause text-white text-2xl";
+        iconContainer.style.opacity = "1";
+        setTimeout(() => { iconContainer.style.opacity = "0"; }, 600);
+      }
+    }
+
+    function toggleVideoMute() {
+      const video = document.getElementById("videoPlayer");
+      const muteIcon = document.getElementById("videoMuteIcon");
+      if (!video || !muteIcon) return;
+
+      if (video.muted) {
+        video.muted = false;
+        muteIcon.className = "fa-solid fa-volume-high text-white text-sm";
+      } else {
+        video.muted = true;
+        muteIcon.className = "fa-solid fa-volume-xmark text-pink-400 text-sm";
+      }
+    }
+
+    function updateReelVideoProgress() {
+      const video = document.getElementById("videoPlayer");
+      const progressBar = document.getElementById("reelsVideoFill");
+      if (!video || !progressBar || !video.duration) return;
+
+      const progress = (video.currentTime / video.duration) * 100;
+      progressBar.style.width = `${progress}%`;
+    }
+
+    function seekReelVideo(event) {
+      const video = document.getElementById("videoPlayer");
+      if (!video || !video.duration) return;
+
+      const bar = event.currentTarget;
+      const rect = bar.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const width = rect.width;
+      const clickPercent = clickX / width;
+
+      video.currentTime = clickPercent * video.duration;
+      updateReelVideoProgress();
+    }
+
+    function triggerVideoLike() {
+      const heartIcon = document.getElementById("videoHeartIcon");
+      const likeCountSpan = document.getElementById("videoLikeCount");
+      if (!heartIcon || !likeCountSpan) return;
+
+      STATE.videoIsLiked = !STATE.videoIsLiked;
+      if (STATE.videoIsLiked) {
+        STATE.videoLikes++;
+        heartIcon.style.color = '#f472b6'; // Active pink
+        triggerExplodingHeartsVisual();
+      } else {
+        STATE.videoLikes--;
+        heartIcon.style.color = ''; // Default grey/white
+      }
+      likeCountSpan.innerText = STATE.videoLikes;
+    }
+
+
+    /* ================= COUNTDOWN SYSTEM ================= */
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const diff = APP_CONFIG.birthdayDate.getTime() - now;
+
+      if (diff <= 0) {
+        APP_CONFIG.birthdayDate = calculateNextBirthday();
+        document.getElementById("nextMilestoneAge").innerText = `${calculateTargetAge()} Years Old`;
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      document.getElementById("count-days").innerText = String(days).padStart(2, '0');
+      document.getElementById("count-hours").innerText = String(hours).padStart(2, '0');
+      document.getElementById("count-mins").innerText = String(mins).padStart(2, '0');
+      document.getElementById("count-secs").innerText = String(secs).padStart(2, '0');
+
+      const startOfYear = new Date(new Date().getFullYear(), 0, 1).getTime();
+      const endOfYear = new Date(new Date().getFullYear(), 11, 31).getTime();
+      const yearElapsed = now - startOfYear;
+      const yearTotal = endOfYear - startOfYear;
+      const yearPercent = Math.min(100, Math.max(0, (yearElapsed / yearTotal) * 100));
+
+      document.getElementById("yearPercentVal").innerText = `${yearPercent.toFixed(0)}%`;
+      const dashOffset = 213 - (213 * (yearPercent / 100));
+      document.getElementById("countdownCircle").setAttribute("stroke-dashoffset", dashOffset);
+    }
+
+    /* ================= AUDIO CONTROL ENGINE ================= */
+    let globalAudio = null;
+
+    function initAudioEngine() {
+      globalAudio = new Audio();
+      globalAudio.volume = 0.7;
+      
+      globalAudio.addEventListener("ended", () => {
+        playNextTrack();
+      });
+    }
+
+    function playTrack(idx) {
+      if (idx < 0 || idx >= MUSIC_DATABASE.length) return;
+      STATE.currentTrackIdx = idx;
+      const track = MUSIC_DATABASE[idx];
+
+      globalAudio.src = track.url;
+      globalAudio.play()
+        .then(() => {
+          STATE.isAudioPlaying = true;
+          updateAudioPlayerUI();
+        })
+        .catch(err => {
+          console.warn("Autoplay block. Tap interaction required.");
+        });
+    }
+
+    function togglePlayPause() {
+      if (STATE.activeTab === "videos") {
+        // Play pause control overrides for Slide 4 Video focus
+        toggleReelPlayState();
+        return;
+      }
+
+      if (!globalAudio.src) {
+        playTrack(0);
+        return;
+      }
+      if (STATE.isAudioPlaying) {
+        globalAudio.pause();
+        STATE.isAudioPlaying = false;
+      } else {
+        globalAudio.play();
+        STATE.isAudioPlaying = true;
+      }
+      updateAudioPlayerUI();
+    }
+
+    function playNextTrack() {
+      let next = STATE.currentTrackIdx + 1;
+      if (next >= MUSIC_DATABASE.length) next = 0;
+      playTrack(next);
+    }
+
+    function adjustVolume(val) {
+      if (globalAudio) globalAudio.volume = val / 100;
+    }
+
+    function updateAudioPlayerUI() {
+      const track = MUSIC_DATABASE[STATE.currentTrackIdx];
+      if (!track) return;
+
+      document.getElementById("miniTitle").innerText = track.name;
+      document.getElementById("miniArtist").innerText = track.artist;
+      document.getElementById("miniCover").innerText = track.cover;
+
+      const playIcon = STATE.isAudioPlaying ? `<i class="fa-solid fa-pause"></i>` : `<i class="fa-solid fa-play"></i>`;
+      document.getElementById("miniPlayBtn").innerHTML = playIcon;
+    }
+
+    /* ================= PHOTO CHRONICLE GRID ================= */
+    function renderGallery() {
+      const grid = document.getElementById("galleryGrid");
+      grid.innerHTML = "";
+
+      GALLERY_DATABASE.forEach((photo, index) => {
+        const card = document.createElement("div");
+        card.className = "polaroid-frame relative cursor-pointer";
+        card.style.setProperty("--rotation", photo.rotation);
+        card.onclick = () => openLightbox(index);
+        card.innerHTML = `
+          <div class="w-full aspect-square overflow-hidden bg-slate-900 rounded">
+            <img src="${photo.url}" class="w-full h-full object-cover" alt="Memory Segment" loading="lazy">
+          </div>
+          <div class="pt-2 text-center text-slate-800">
+            <p class="text-[8px] font-cursive truncate px-1">${photo.caption}</p>
+            <span class="text-[7px] text-pink-500 font-bold block">❤️ ${photo.likes} Likes</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function openLightbox(index) {
+      STATE.lightboxActiveIdx = index;
+      const photo = GALLERY_DATABASE[index];
+      
+      document.getElementById("lightboxImg").src = photo.url;
+      document.getElementById("lightboxCaption").innerText = photo.caption;
+      document.getElementById("lightboxIndex").innerText = `Image ${index + 1} / ${GALLERY_DATABASE.length}`;
+      document.getElementById("galleryLightbox").classList.remove("hidden");
+      document.getElementById("galleryLightbox").classList.add("flex");
+    }
+
+    function closeLightbox() {
+      document.getElementById("galleryLightbox").classList.add("hidden");
+      document.getElementById("galleryLightbox").classList.remove("flex");
+    }
+
+    function navigateLightbox(dir) {
+      let idx = STATE.lightboxActiveIdx + dir;
+      if (idx < 0) idx = GALLERY_DATABASE.length - 1;
+      if (idx >= GALLERY_DATABASE.length) idx = 0;
+      openLightbox(idx);
+    }
+
+    function triggerLightboxLike() {
+      const active = GALLERY_DATABASE[STATE.lightboxActiveIdx];
+      active.likes += 1;
+      triggerExplodingHeartsVisual();
+      openLightbox(STATE.lightboxActiveIdx);
+      renderGallery();
+    }
+
+    function triggerLightboxDownload() {
+      alert("Downloading frame sequence directly to local directory standard.");
+    }
+
+    /* ================= AFFECTION MATRIX (15 REASONS) ================= */
+    function renderReasonsMatrix() {
+      const stack = document.getElementById("reasonStack");
+      stack.innerHTML = "";
+
+      AFFECTION_MATRIX_REASONS.forEach((reason, index) => {
+        const card = document.createElement("div");
+        card.id = `reason-card-${index}`;
+        card.className = "absolute w-64 h-52 glass-panel border border-pink-500/15 p-5 rounded-2xl flex flex-col justify-between transition-all duration-500 ease-out select-none pointer-events-none";
+        
+        const zIndex = 100 - index;
+        const rotate = (index % 2 === 0 ? 1 : -1) * (index * 1.5);
+        const transformY = index * -4;
+
+        card.style.transform = `translateY(${transformY}px) rotate(${rotate}deg)`;
+        card.style.zIndex = zIndex;
+
+        card.innerHTML = `
+          <div class="flex justify-between items-center text-[9px] text-pink-300 font-bold border-b border-pink-500/10 pb-2">
+            <span>PARAMETER LOG</span>
+            <span>NODE #${index + 1}</span>
+          </div>
+          <p class="text-xs italic text-pink-100 text-center leading-relaxed font-medium py-2">"${reason}"</p>
+          <div class="text-center text-[8px] text-pink-400/60 tracking-wider uppercase border-t border-pink-500/10 pt-2">
+            Affection verified
+          </div>
+        `;
+        stack.appendChild(card);
+      });
+
+      updateActiveReasonCard();
+    }
+
+    function updateActiveReasonCard() {
+      const count = AFFECTION_MATRIX_REASONS.length;
+      document.getElementById("reasonCounter").innerText = `${STATE.activeReasonIdx + 1} / ${count}`;
+
+      AFFECTION_MATRIX_REASONS.forEach((_, idx) => {
+        const card = document.getElementById(`reason-card-${idx}`);
+        if (!card) return;
+
+        if (idx === STATE.activeReasonIdx) {
+          card.classList.remove("opacity-0", "scale-90");
+          card.style.transform = `translateY(0px) rotate(0deg)`;
+          card.style.zIndex = "150";
+        } else if (idx < STATE.activeReasonIdx) {
+          card.classList.add("opacity-0", "scale-90");
+          card.style.transform = `translateX(-120px) rotate(-10deg)`;
+          card.style.zIndex = "10";
+        } else {
+          card.classList.remove("opacity-0");
+          const relativeIdx = idx - STATE.activeReasonIdx;
+          const rotate = (relativeIdx % 2 === 0 ? 1 : -1) * (relativeIdx * 1.5);
+          const transformY = relativeIdx * -5;
+          card.style.transform = `translateY(${transformY}px) rotate(${rotate}deg)`;
+          card.style.zIndex = String(100 - relativeIdx);
+        }
+      });
+    }
+
+    function navigateReason(dir) {
+      let idx = STATE.activeReasonIdx + dir;
+      if (idx < 0) idx = 0;
+      if (idx >= AFFECTION_MATRIX_REASONS.length) idx = AFFECTION_MATRIX_REASONS.length - 1;
+      STATE.activeReasonIdx = idx;
+      updateActiveReasonCard();
+    }
+
+    /* ================= CORESPONDENCE TYPING LOG ================= */
+    function replayLetterAnimation() {
+      if (STATE.letterIntervalId) {
+        clearInterval(STATE.letterIntervalId);
+      }
+      STATE.letterCharIndex = 0;
+      document.getElementById("letterContent").innerText = "";
+      
+      STATE.letterIntervalId = setInterval(() => {
+        const target = document.getElementById("letterContent");
+        if (STATE.letterCharIndex < CORRESPONDENCE_TEXT.length) {
+          target.innerText += CORRESPONDENCE_TEXT.charAt(STATE.letterCharIndex);
+          STATE.letterCharIndex++;
+        } else {
+          clearInterval(STATE.letterIntervalId);
+        }
+      }, STATE.letterSpeed);
+    }
+
+    function skipTypingAnimation() {
+      if (STATE.letterIntervalId) clearInterval(STATE.letterIntervalId);
+      document.getElementById("letterContent").innerText = CORRESPONDENCE_TEXT;
+    }
+
+    /* ================= THERMAL DISCHARGE (CAKE) ================= */
+    function extinguishCandle() {
+      document.getElementById("mainFlame").classList.add("hidden");
+      STATE.candleBlown = true;
+      document.getElementById("cakePostBlowArea").classList.remove("hidden");
+      setParticleMode("fireworks");
+      alert("Candle extinguished. System authorization complete.");
+    }
+
+    function resetCandle() {
+      document.getElementById("mainFlame").classList.remove("hidden");
+      document.getElementById("cakePostBlowArea").classList.add("hidden");
+      STATE.candleBlown = false;
+      setParticleMode("stars");
+    }
+
+    async function initMicrophoneBlow() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone operations not supported in this environment.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        src.connect(analyser);
+
+        document.getElementById("micText").innerText = "Blow directly into microphone receiver.";
+        document.getElementById("micIndicator").classList.remove("bg-amber-500");
+        document.getElementById("micIndicator").classList.add("bg-emerald-500");
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        
+        function detectBlow() {
+          if (STATE.candleBlown) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          analyser.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            sum += data[i];
+          }
+          let average = sum / data.length;
+          
+          if (average > 75) {
+            extinguishCandle();
+            stream.getTracks().forEach(t => t.stop());
+          } else {
+            requestAnimationFrame(detectBlow);
+          }
+        }
+        detectBlow();
+      } catch (err) {
+        alert("Microphone configuration access denied or unavailable.");
+      }
+    }
+
+    /* ================= SURPRISE GIFT MANIFEST ================= */
+    function decryptGift(index) {
+      const card = document.getElementById(`gift-${index}`);
+      if (!card) return;
+
+      const titles = {
+        1: "🎟_ Date Ticket Unlocked",
+        2: "🍽_ Dinner Voucher Activated",
+        3: "🎁 Indulgence Pass Cleared",
+        4: "✈_ Secret Weekend Coordinate Set"
+      };
+
+      card.innerHTML = `
+        <div class="text-2xl text-emerald-400 mt-2 animate-pulse"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="space-y-1 py-1">
+          <h4 class="font-bold text-[10px] text-emerald-400">Decryption Cleared</h4>
+          <p class="text-[9px] text-pink-200 leading-normal font-semibold">${titles[index]}</p>
+        </div>
+        <div class="text-[8px] text-pink-300/40 tracking-wider">SECURE ENTRY DEPLOYED</div>
+      `;
+      card.classList.add("border-emerald-500/40", "bg-emerald-950/20");
+    }
+
+    /* ================= PERSISTENT GUESTBOOK WISHES ================= */
+    let wishesFormTheme = "rose";
+
+    function setFormTheme(color) {
+      wishesFormTheme = color;
+      document.querySelectorAll("#wishForm button[type='button']").forEach(btn => {
+        btn.classList.remove("border", "border-white");
+      });
+      document.getElementById(`color-${color}`).classList.add("border", "border-white");
+    }
+
+    function submitWish(e) {
+      e.preventDefault();
+      const name = document.getElementById("wishName").value.trim();
+      const msg = document.getElementById("wishMessage").value.trim();
+      if (!name || !msg) return;
+
+      const wish = {
+        id: Date.now(),
+        name,
+        message: msg,
+        theme: wishesFormTheme,
+        timestamp: new Date().toLocaleDateString()
+      };
+
+      let existing = JSON.parse(localStorage.getItem("birthday_wishes") || "[]");
+      existing.unshift(wish);
+      localStorage.setItem("birthday_wishes", JSON.stringify(existing));
+
+      document.getElementById("wishForm").reset();
+      loadWishes();
+      triggerExplodingHeartsVisual();
+    }
+
+    function loadWishes() {
+      const grid = document.getElementById("wishesGrid");
+      grid.innerHTML = "";
+      const list = JSON.parse(localStorage.getItem("birthday_wishes") || "[]");
+
+      document.getElementById("wishCount").innerText = `${list.length} committed`;
+
+      if (list.length === 0) {
+        grid.innerHTML = `<div class="text-center py-4 text-slate-500 text-[10px]">No records found. Post your wish parameters.</div>`;
+        return;
+      }
+
+      const colors = {
+        rose: "border-pink-500/30 bg-pink-950/10 text-pink-200",
+        indigo: "border-purple-500/30 bg-purple-950/10 text-purple-200",
+        emerald: "border-rose-400/30 bg-rose-950/10 text-rose-200"
+      };
+
+      list.forEach(w => {
+        const div = document.createElement("div");
+        div.className = `p-3 rounded-xl border text-[10px] space-y-2 glass-card ${colors[w.theme] || colors.rose}`;
+        div.innerHTML = `
+          <div class="flex justify-between items-center opacity-85 font-semibold">
+            <span>${w.name}</span>
+            <span>${w.timestamp}</span>
+          </div>
+          <p class="leading-relaxed italic font-serif">"${w.message}"</p>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    /* ================= CHAPTER BOOK ================= */
+    function renderStoryPage() {
+      const container = document.getElementById("storyBookPageContent");
+      const page = CHAPTER_BOOK[STATE.activeStoryPageIdx];
+
+      container.classList.add("opacity-0");
+      setTimeout(() => {
+        container.innerHTML = `
+          <span class="text-[9px] uppercase tracking-wider text-pink-400 font-bold">Chapter 0${STATE.activeStoryPageIdx + 1}</span>
+          <h3 class="text-base font-serif font-semibold text-pink-100">${page.title}</h3>
+          <p class="text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap">${page.text}</p>
+        `;
+        container.classList.remove("opacity-0");
+        document.getElementById("storyPageCount").innerText = `Chapter ${STATE.activeStoryPageIdx + 1} / ${CHAPTER_BOOK.length}`;
+      }, 200);
+    }
+
+    function navigateStoryPage(dir) {
+      let idx = STATE.activeStoryPageIdx + dir;
+      if (idx < 0) idx = 0;
+      if (idx >= CHAPTER_BOOK.length) idx = CHAPTER_BOOK.length - 1;
+      STATE.activeStoryPageIdx = idx;
+      renderStoryPage();
+    }
+
+    /* ================= HISTORY TIMELINE ================= */
+    function renderTimeline() {
+      const container = document.getElementById("timelineList");
+      container.innerHTML = "";
+
+      HISTORICAL_TIMELINE.forEach((item) => {
+        const block = document.createElement("div");
+        block.className = "relative group cursor-pointer";
+        block.onclick = () => alert(`Viewing telemetry details for parameter ${item.year}`);
+        block.innerHTML = `
+          <div class="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-[#0d0912] border-4 border-pink-500"></div>
+          <div class="glass-panel p-3.5 rounded-xl border border-pink-500/15">
+            <span class="block text-[10px] font-bold text-pink-400 mb-0.5">${item.year}</span>
+            <h4 class="font-bold text-xs text-pink-100">${item.title}</h4>
+            <p class="text-[10px] text-slate-400 mt-1 leading-normal">${item.desc}</p>
+          </div>
+        `;
+        container.appendChild(block);
+      });
+    }
+
+    /* ================= PERSISTENT PARTICLE CANVAS ================= */
+    const canvas = document.getElementById("particleCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function initParticleEngine() {
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      runParticleLoop();
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function setParticleMode(mode) {
+      STATE.particleMode = mode;
+      STATE.particles = [];
+    }
+
+    function triggerExplodingHeartsVisual() {
+      const previousMode = STATE.particleMode;
+      setParticleMode("hearts");
+      for (let i = 0; i < 35; i++) {
+        const p = createParticle();
+        p.x = Math.random() * canvas.width;
+        p.y = canvas.height * 0.7 + (Math.random() - 0.5) * 150;
+        p.speedY = -(2 + Math.random() * 3);
+        STATE.particles.push(p);
+      }
+      setTimeout(() => {
+        setParticleMode(previousMode);
+      }, 3000);
+    }
+
+    function createParticle() {
+      const mode = STATE.particleMode;
+      const p = {
+        x: Math.random() * canvas.width,
+        y: mode === "balloons" || mode === "fireworks" ? canvas.height + 20 : -20,
+        size: 3 + Math.random() * 6,
+        speedX: (Math.random() - 0.5) * 1.2 * STATE.particleSpeedScale,
+        speedY: (mode === "balloons" ? -(1 + Math.random() * 1.5) : (1 + Math.random() * 1.5)) * STATE.particleSpeedScale,
+        color: `rgba(${Math.floor(244 + Math.random() * 11)}, ${Math.floor(114 + Math.random() * 40)}, ${Math.floor(182 + Math.random() * 20)}, ${0.4 + Math.random() * 0.4})`,
+        alpha: 1,
+        life: 100 + Math.random() * 100
+      };
+
+      if (mode === "fireworks") {
+        p.x = canvas.width / 2 + (Math.random() - 0.5) * (canvas.width * 0.8);
+        p.y = canvas.height;
+        p.speedY = -(4 + Math.random() * 5);
+        p.speedX = (Math.random() - 0.5) * 3;
+        p.isRocket = true;
+      } else if (mode === "stars") {
+        p.y = Math.random() * canvas.height;
+        p.speedY = 0;
+        p.speedX = 0;
+        p.blinkSpeed = 0.01 + Math.random() * 0.02;
+      }
+
+      return p;
+    }
+
+    function runParticleLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (STATE.particles.length < 80 && Math.random() < 0.3) {
+        STATE.particles.push(createParticle());
+      }
+
+      for (let i = STATE.particles.length - 1; i >= 0; i--) {
+        const p = STATE.particles[i];
+
+        if (STATE.particleMode === "stars") {
+          p.alpha -= p.blinkSpeed;
+          if (p.alpha <= 0.1 || p.alpha >= 1) {
+            p.blinkSpeed = -p.blinkSpeed;
+          }
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+          ctx.arc(p.x, p.y, p.size / 3, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
+
+        if (STATE.particleMode === "fireworks") {
+          if (p.isRocket) {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            ctx.beginPath();
+            ctx.fillStyle = "#fbbf24";
+            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (p.speedY >= -1) {
+              p.isRocket = false;
+              for (let j = 0; j < 25; j++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = 1 + Math.random() * 4;
+                STATE.particles.push({
+                  x: p.x,
+                  y: p.y,
+                  speedX: Math.cos(angle) * spd,
+                  speedY: Math.sin(angle) * spd,
+                  size: 2 + Math.random() * 2,
+                  color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                  alpha: 1,
+                  life: 30 + Math.random() * 30,
+                  isEmber: true
+                });
+              }
+              STATE.particles.splice(i, 1);
+            }
+          } else if (p.isEmber) {
+            p.x += p.speedX;
+            p.y += p.speedY;
+            p.speedY += 0.04;
+            p.alpha -= 0.025;
+            ctx.beginPath();
+            ctx.fillStyle = p.color;
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (p.alpha <= 0) {
+              STATE.particles.splice(i, 1);
+            }
+          }
+          continue;
+        }
+
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+
+        if (STATE.particleMode === "hearts") {
+          ctx.arc(p.x - p.size/2, p.y, p.size/2, Math.PI, 0, false);
+          ctx.arc(p.x + p.size/2, p.y, p.size/2, Math.PI, 0, false);
+          ctx.lineTo(p.x, p.y + p.size);
+          ctx.closePath();
+          ctx.fill();
+        } else if (STATE.particleMode === "balloons") {
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.moveTo(p.x, p.y + p.size);
+          ctx.lineTo(p.x + p.speedX * 4, p.y + p.size + 12);
+          ctx.stroke();
+        } else {
+          ctx.arc(p.x, p.y, p.size/2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (p.y > canvas.height + 20 || p.y < -20 || p.x > canvas.width + 20 || p.x < -20) {
+          STATE.particles.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(runParticleLoop);
+    }
+
+    function triggerGrandFinaleEffects() {
+      setParticleMode("fireworks");
+      alert("Skyfire sequence activated successfully.");
+    }
+
+    function initializeApp() {
+      buildNavigation();
+      renderGallery();
+      renderReasonsMatrix();
+      renderTimeline();
+      loadWishes();
+      initParticleEngine();
+      initAudioEngine();
+      updateAudioPlayerUI();
+      setFormTheme("rose");
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+      switchTab("home");
+    }
+
+    document.addEventListener("DOMContentLoaded", initializeApp);
+  </script>
+</body>
+</html>
